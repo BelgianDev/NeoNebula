@@ -125,7 +125,11 @@ export class VersionUtil {
     public static findNeoForgePromotedVersion(index: NeoForgeVersionIndex, stable: boolean, workingVersion: string): string | undefined {
         // Expects to receive the incoming version index, with the latest version further in the array.
         let latestAvailable: string | undefined
-        index.versions.filter(version => version.startsWith(workingVersion)).forEach(version => {
+        index.versions.filter(version => {
+            const vSplit = version.split('.')
+            const wSplit = workingVersion.split('.')
+            return vSplit[0] === wSplit[0] && vSplit[1] === wSplit[1]
+        }).forEach(version => {
             if (stable) {
                 if (!version.endsWith('-beta'))
                     latestAvailable = version
