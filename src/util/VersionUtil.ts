@@ -106,14 +106,13 @@ export class VersionUtil {
 
     public static async getPromotedNeoForgeVersion(minecraftVersion: MinecraftVersion, promotion: string): Promise<string> {
         const stable = promotion.toLowerCase() === 'recommended'
-        const workingVersion = minecraftVersion.getMinor() + '.' + (minecraftVersion.getRevision() ? minecraftVersion.getRevision() : 0)
         const index = await VersionUtil.getNeoForgeVersionIndex()
 
-        let version: string | undefined = VersionUtil.findNeoForgePromotedVersion(index, stable, workingVersion)
+        let version: string | undefined = VersionUtil.findNeoForgePromotedVersion(index, stable, minecraftVersion)
         if (version == null) {
             VersionUtil.logger.warn(`No ${promotion.toLowerCase()} version found for NeoForge ${minecraftVersion}.`)
             VersionUtil.logger.warn('Attempting to pull latest version instead.')
-            version = VersionUtil.findNeoForgePromotedVersion(index, false, workingVersion)
+            version = VersionUtil.findNeoForgePromotedVersion(index, false, minecraftVersion)
             if (version == null) {
                 throw new Error(`No latest version found for Forge ${minecraftVersion}.`)
             }
@@ -122,13 +121,20 @@ export class VersionUtil {
         return version
     }
 
-    public static findNeoForgePromotedVersion(index: NeoForgeVersionIndex, stable: boolean, workingVersion: string): string | undefined {
+    public static findNeoForgePromotedVersion(index: NeoForgeVersionIndex, stable: boolean, workingVersion: MinecraftVersion): string | undefined {
         // Expects to receive the incoming version index, with the latest version further in the array.
         let latestAvailable: string | undefined
+
+        const minecraftMinor = workingVersion.getMinor()
+        const minecraftPatch = workingVersion.getRevision() ?? 0
+
         index.versions.filter(version => {
             const vSplit = version.split('.')
-            const wSplit = workingVersion.split('.')
-            return vSplit[0] === wSplit[0] && vSplit[1] === wSplit[1]
+            if (vSplit.length < 2) return false
+
+            const neoMajor = parseInt(vSplit[0])
+            const neoMinor = parseInt(vSplit[1])
+            return neoMajor === minecraftMinor && neoMinor === minecraftPatch
         }).forEach(version => {
             if (stable) {
                 if (!version.endsWith('-beta'))
